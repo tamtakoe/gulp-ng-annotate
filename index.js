@@ -1,5 +1,6 @@
 "use strict";
 
+var path = require('path');
 var gutil = require("gulp-util");
 var through = require("through2");
 var ngAnnotate = require("ng-annotate");
@@ -8,6 +9,24 @@ var merge = require("merge");
 var BufferStreams = require("bufferstreams");
 
 var PLUGIN_NAME = "gulp-ng-annotate";
+
+// ngAnnotate plugin which collects angular modules names
+function collectModulesPlugin(collection) {
+  return {
+    init: function(_ctx) {},
+    match: function(node) {
+      if (node.$parent && node.$parent.callee && node.value) {
+        var callee = node.$parent.callee;
+        var object = callee.object;
+        var method = callee.property;
+
+        if (object && object.name === "angular" && method && method.name === "module") {
+          collection.push(node.value);
+        }
+      }
+    }
+  };
+}
 
 // Function which handle logic for both stream and buffer modes.
 function transform(file, input, opts) {
@@ -39,11 +58,36 @@ function transform(file, input, opts) {
 
 module.exports = function (options) {
   options = options || {};
+  var base, flush;
+
   if (!options.remove) {
     options = merge({add: true}, options);
   };
 
+  if (options.createMainModule) {
+    options.plugin = options.plugin || [];
+    var mainModuleName = options.createMainModule;
+    var mainModuleDependencies = [];
+
+    options.plugin.push(collectModulesPlugin(mainModuleDependencies));
+
+    flush = function(done) {
+      var dependencies = mainModuleDependencies.length ? '"' + mainModuleDependencies.join('", "') + '"' : '';
+      var content = 'angular.module("' + mainModuleName + '", [' + dependencies + ']);';
+      var file = new gutil.File({
+        base: base,
+        path: path.join(base || '', mainModuleName, '.js'),
+        contents: new Buffer(content, 'utf8')
+      });
+      this.push(file);
+
+      done();
+    }
+  }
+
   return through.obj(function (file, enc, done) {
+    base = file.base;
+
     // When null just pass through.
     if (file.isNull()) {
       this.push(file);
@@ -85,5 +129,5 @@ module.exports = function (options) {
 
     this.push(file);
     done();
-  });
+  }, flush);
 };

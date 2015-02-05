@@ -34,6 +34,14 @@ You can pass any of the [ng-annotate options](https://github.com/olov/ng-annotat
 
 `add: true` option is implied by default unless `remove` is set to true.
 
+Use `createMainModule: '<moduleName>'` option when you want to create an angular module that depends on all the modules of the processed files.
+File with main module is added to the end of the stream.
+
+```js
+//mainModule.js
+angularModule('mainModule', ['module1', 'module2, 'module3']);
+```
+
 ## License
 
 gulp-ng-annotate - Add angularjs dependency injection annotations with ng-annotate
