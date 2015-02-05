@@ -39,7 +39,7 @@ File with main module is added to the end of the stream.
 
 ```js
 //mainModule.js
-angularModule('mainModule', ['module1', 'module2, 'module3']);
+angular.module('mainModule', ['module1', 'module2', 'module3']);
 ```
 
 ## License
